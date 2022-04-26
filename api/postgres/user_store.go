@@ -40,7 +40,6 @@ func (u *UserStore) CreateUser(user *model.NewUser) (*model.User, error) {
 	if err := u.QueryRowx("SELECT * FROM users WHERE username = $1 OR email = $2", user.Username, user.Email).StructScan(&model.User{}); err != nil {
 		// User with specified credentials does not exist
 		password, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-		fmt.Println(len(password))
 		if err != nil {
 			return nil, fmt.Errorf("could not hash password")
 		}
