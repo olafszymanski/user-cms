@@ -3,7 +3,6 @@
 package model
 
 type NewUser struct {
-	ID       string `json:"id"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -11,7 +10,7 @@ type NewUser struct {
 }
 
 type UpdateUser struct {
-	ID       *string `json:"id"`
+	ID       int     `json:"id"`
 	Username *string `json:"username"`
 	Email    *string `json:"email"`
 	Password *string `json:"password"`
@@ -19,7 +18,7 @@ type UpdateUser struct {
 }
 
 type User struct {
-	ID       *string `json:"id"`
+	ID       *int    `json:"id"`
 	Username *string `json:"username"`
 	Email    *string `json:"email"`
 	Password *string `json:"password"`
