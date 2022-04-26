@@ -8,6 +8,8 @@ require (
 	github.com/vektah/gqlparser/v2 v2.4.2
 )
 
+require golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4 // indirect
+
 require (
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect

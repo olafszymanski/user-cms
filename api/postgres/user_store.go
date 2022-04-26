@@ -6,6 +6,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/olafszymanski/user-cms/graph/model"
 	"github.com/olafszymanski/user-cms/utils"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func NewUserStore(db *sqlx.DB) *UserStore {
@@ -38,7 +39,16 @@ func (u *UserStore) Users() ([]*model.User, error) {
 func (u *UserStore) CreateUser(user *model.NewUser) (*model.User, error) {
 	if err := u.QueryRowx("SELECT * FROM users WHERE username = $1 OR email = $2", user.Username, user.Email).StructScan(&model.User{}); err != nil {
 		// User with specified credentials does not exist
-		if _, err := u.Exec("INSERT INTO users (username, email, password, admin) VALUES ($1, $2, $3, $4)", user.Username, user.Email, user.Password, utils.Btou(user.Admin)); err != nil {
+		password, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+		fmt.Println(len(password))
+		if err != nil {
+			return nil, fmt.Errorf("could not hash password")
+		}
+		if _, err := u.Exec("INSERT INTO users (username, email, password, admin) VALUES ($1, $2, $3, $4)",
+			user.Username,
+			user.Email,
+			string(password),
+			utils.Btou(user.Admin)); err != nil {
 			return nil, fmt.Errorf("could not insert user into database, error: %w", err)
 		}
 		return &model.User{
@@ -55,6 +65,12 @@ func (u *UserStore) UpdateUser(user *model.UpdateUser) (*model.User, error) {
 	if err := u.QueryRowx("SELECT * FROM users WHERE id = $1", user.ID).StructScan(&model.User{}); err != nil {
 		return nil, fmt.Errorf("user with id %v does not exist, error: %w", user.ID, err)
 	}
+	password, err := bcrypt.GenerateFromPassword([]byte(*user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("could not hash password")
+	}
+	stringPassword := string(password)
+	user.Password = &stringPassword
 	if _, err := u.NamedQuery(utils.BuildUpdateQuery(user), user); err != nil {
 		return nil, fmt.Errorf("could not update user, error: %w", err)
 	}
