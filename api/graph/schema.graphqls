@@ -27,7 +27,7 @@ input UpdateUser {
 }
 
 type Mutation {
-  createUser(user: NewUser!): User!
-  updateUser(user: UpdateUser!): User!
+  createUser(input: NewUser!): User!
+  updateUser(input: UpdateUser!): User!
   deleteUser(id: ID!): Boolean!
 }

@@ -8,11 +8,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var Database *store
-
-type store struct {
-	*UserStore
-}
+var Database *sqlx.DB
 
 func init() {
 	databaseSource := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",
@@ -24,7 +20,5 @@ func init() {
 	if err = db.Ping(); err != nil {
 		panic(fmt.Errorf("error while connecting to a database, error: %w", err))
 	}
-	Database = &store{
-		UserStore: NewUserStore(db),
-	}
+	Database = db
 }
