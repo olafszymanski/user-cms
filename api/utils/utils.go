@@ -1,7 +1,10 @@
 package utils
 
 import (
+	"fmt"
+
 	"github.com/olafszymanski/user-cms/graph/model"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func Btou(v bool) uint8 {
@@ -12,20 +15,37 @@ func Btou(v bool) uint8 {
 	}
 }
 
-func BuildUpdateQuery(user *model.UpdateUser) string {
+func HashPassword(password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hash), nil
+}
+
+func GenerateQueryAndUser(input *model.UpdateUser, user *model.User) (string, error) {
 	query := "UPDATE users SET "
+
 	params := []string{}
-	if user.Username != nil {
+	if input.Username != nil {
 		params = append(params, "username=:username")
+		user.Username = input.Username
 	}
-	if user.Email != nil {
+	if input.Email != nil {
 		params = append(params, "email=:email")
+		user.Email = input.Email
 	}
-	if user.Password != nil {
+	if input.Password != nil {
 		params = append(params, "password=:password")
+		password, err := HashPassword(*input.Password)
+		if err != nil {
+			return "", fmt.Errorf("could not hash password, error: %w", err)
+		}
+		input.Password = &password
 	}
-	if user.Admin != nil {
+	if input.Admin != nil {
 		params = append(params, "admin=:admin")
+		user.Admin = input.Admin
 	}
 
 	for i, p := range params {
@@ -36,5 +56,5 @@ func BuildUpdateQuery(user *model.UpdateUser) string {
 	}
 
 	query += " WHERE id=:id"
-	return query
+	return query, nil
 }

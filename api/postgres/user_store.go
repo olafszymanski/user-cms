@@ -6,7 +6,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/olafszymanski/user-cms/graph/model"
 	"github.com/olafszymanski/user-cms/utils"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func NewUserStore(db *sqlx.DB) *UserStore {
@@ -36,56 +35,59 @@ func (u *UserStore) Users() ([]*model.User, error) {
 	return users, nil
 }
 
-func (u *UserStore) CreateUser(user *model.NewUser) (*model.User, error) {
-	if err := u.QueryRowx("SELECT * FROM users WHERE username = $1 OR email = $2", user.Username, user.Email).StructScan(&model.User{}); err != nil {
+func (u *UserStore) CreateUser(input *model.NewUser) (*model.User, error) {
+	if err := u.QueryRowx("SELECT * FROM users WHERE username = $1 OR email = $2", input.Username, input.Email).StructScan(&model.User{}); err != nil {
 		// User with specified credentials does not exist
-		password, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+		password, err := utils.HashPassword(input.Password)
 		if err != nil {
-			return nil, fmt.Errorf("could not hash password")
+			return nil, fmt.Errorf("could not hash password, error: %w", err)
 		}
+
 		if _, err := u.Exec("INSERT INTO users (username, email, password, admin) VALUES ($1, $2, $3, $4)",
-			user.Username,
-			user.Email,
+			input.Username,
+			input.Email,
 			string(password),
-			utils.Btou(user.Admin)); err != nil {
+			utils.Btou(input.Admin)); err != nil {
 			return nil, fmt.Errorf("could not insert user into database, error: %w", err)
 		}
+
 		return &model.User{
-			Username: &user.Username,
-			Email:    &user.Email,
-			Password: &user.Password,
-			Admin:    &user.Admin,
+			Username: &input.Username,
+			Email:    &input.Email,
+			Password: &password,
+			Admin:    &input.Admin,
 		}, nil
 	}
 	return nil, fmt.Errorf("user with specified credentials already exists")
 }
 
-func (u *UserStore) UpdateUser(user *model.UpdateUser) (*model.User, error) {
-	if err := u.QueryRowx("SELECT * FROM users WHERE id = $1", user.ID).StructScan(&model.User{}); err != nil {
-		return nil, fmt.Errorf("user with id %v does not exist, error: %w", user.ID, err)
+func (u *UserStore) UpdateUser(input *model.UpdateUser) (*model.User, error) {
+	user := &model.User{}
+	if err := u.QueryRowx("SELECT * FROM users WHERE id = $1", input.ID).StructScan(user); err != nil {
+		return nil, fmt.Errorf("user with id %v does not exist, error: %w", input.ID, err)
 	}
-	password, err := bcrypt.GenerateFromPassword([]byte(*user.Password), bcrypt.DefaultCost)
+
+	query, err := utils.GenerateQueryAndUser(input, user)
 	if err != nil {
-		return nil, fmt.Errorf("could not hash password")
+		return nil, fmt.Errorf("could not generate query and user, error: %w", err)
 	}
-	stringPassword := string(password)
-	user.Password = &stringPassword
-	if _, err := u.NamedQuery(utils.BuildUpdateQuery(user), user); err != nil {
+	if _, err := u.NamedQuery(query, map[string]interface{}{
+		"id":       user.ID,
+		"username": user.Username,
+		"email":    user.Email,
+		"password": user.Password,
+		"admin":    utils.Btou(*user.Admin),
+	}); err != nil {
 		return nil, fmt.Errorf("could not update user, error: %w", err)
 	}
-	return &model.User{
-		ID:       &user.ID,
-		Username: user.Username,
-		Email:    user.Email,
-		Password: user.Password,
-		Admin:    user.Admin,
-	}, nil
+	return user, nil
 }
 
 func (u *UserStore) DeleteUser(id int) error {
 	if err := u.QueryRowx("SELECT * FROM users WHERE id = $1", id).StructScan(&model.User{}); err != nil {
 		return fmt.Errorf("user with id %v does not exist, error: %w", id, err)
 	}
+
 	if _, err := u.Exec("DELETE FROM users WHERE id = $1", id); err != nil {
 		return fmt.Errorf("could not delete user with id %v, error: %w", id, err)
 	}
