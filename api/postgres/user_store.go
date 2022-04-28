@@ -37,7 +37,7 @@ type UserStore struct {
 	statements map[string]*sqlx.Stmt
 }
 
-func (u *UserStore) User(id int) (*users.User, error) {
+func (u *UserStore) Get(id int) (*users.User, error) {
 	user := &users.User{}
 	if err := u.statements["SELECT * FROM users WHERE id = $1"].QueryRowx(id).StructScan(user); err != nil {
 		return nil, fmt.Errorf("user with id %v does not exist, error: %w", id, err)
@@ -45,7 +45,7 @@ func (u *UserStore) User(id int) (*users.User, error) {
 	return user, nil
 }
 
-func (u *UserStore) Users() ([]*users.User, error) {
+func (u *UserStore) All() ([]*users.User, error) {
 	var users []*users.User
 	if err := u.statements["SELECT * FROM users"].Select(&users); err != nil {
 		return nil, nil
@@ -53,7 +53,7 @@ func (u *UserStore) Users() ([]*users.User, error) {
 	return users, nil
 }
 
-func (u *UserStore) CreateUser(new *users.User) (*users.User, error) {
+func (u *UserStore) Create(new *users.User) (*users.User, error) {
 	password, err := utils.HashPassword(*new.Password)
 	if err != nil {
 		return nil, fmt.Errorf("could not hash password, error: %w", err)
@@ -71,7 +71,7 @@ func (u *UserStore) CreateUser(new *users.User) (*users.User, error) {
 	return new, nil
 }
 
-func (u *UserStore) UpdateUser(update *users.User) (*users.User, error) {
+func (u *UserStore) Update(update *users.User) (*users.User, error) {
 	user := &users.User{}
 	if err := u.statements["SELECT * FROM users WHERE id = $1"].QueryRowx(update.ID).StructScan(user); err != nil {
 		return nil, fmt.Errorf("user with id %v does not exist, error: %w", update.ID, err)
@@ -94,7 +94,7 @@ func (u *UserStore) UpdateUser(update *users.User) (*users.User, error) {
 	return user, nil
 }
 
-func (u *UserStore) DeleteUser(id int) error {
+func (u *UserStore) Delete(id int) error {
 	if err := u.statements["SELECT * FROM users WHERE id = $1"].QueryRowx(id).StructScan(&users.User{}); err != nil {
 		return fmt.Errorf("user with id %v does not exist, error: %w", id, err)
 	}

@@ -13,7 +13,7 @@ import (
 )
 
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
-	user, err := postgres.Database.CreateUser(&users.User{
+	user, err := postgres.Database.UserStore.Create(&users.User{
 		Username: &input.Username,
 		Email:    &input.Email,
 		Password: &input.Password,
@@ -32,7 +32,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) 
 }
 
 func (r *mutationResolver) UpdateUser(ctx context.Context, input model.UpdateUser) (*model.User, error) {
-	user, err := postgres.Database.UpdateUser(&users.User{
+	user, err := postgres.Database.UserStore.Update(&users.User{
 		ID:       &input.ID,
 		Username: input.Username,
 		Email:    input.Email,
@@ -52,14 +52,14 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, input model.UpdateUse
 }
 
 func (r *mutationResolver) DeleteUser(ctx context.Context, id int) (bool, error) {
-	if err := postgres.Database.DeleteUser(id); err != nil {
+	if err := postgres.Database.UserStore.Delete(id); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
 func (r *queryResolver) User(ctx context.Context, id int) (*model.User, error) {
-	user, err := postgres.Database.User(id)
+	user, err := postgres.Database.UserStore.Get(id)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func (r *queryResolver) User(ctx context.Context, id int) (*model.User, error) {
 }
 
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
-	users, err := postgres.Database.Users()
+	users, err := postgres.Database.UserStore.All()
 	if err != nil {
 		return nil, err
 	}

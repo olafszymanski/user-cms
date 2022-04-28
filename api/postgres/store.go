@@ -10,6 +10,14 @@ import (
 
 var Database *Store
 
+type IStore interface {
+	Get(id int) (interface{}, error)
+	All() (interface{}, error)
+	Create(interface{}) (interface{}, error)
+	Update(interface{}, interface{}) (interface{}, error)
+	Delete(id int) (bool, error)
+}
+
 type Store struct {
 	*UserStore
 }
