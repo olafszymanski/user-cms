@@ -20,6 +20,7 @@ func NewUserStore(db *sqlx.DB) *UserStore {
 		"SELECT * FROM users",
 		"INSERT INTO users (username, email, password, admin) VALUES ($1, $2, $3, $4) RETURNING id",
 		"DELETE FROM users WHERE id = $1",
+		"SELECT * FROM users WHERE username = $1",
 	}
 	for _, query := range queries {
 		stmt, err := store.Preparex(query)
@@ -63,11 +64,12 @@ func (u *UserStore) Create(new *users.User) (*users.User, error) {
 	if err := u.statements["INSERT INTO users (username, email, password, admin) VALUES ($1, $2, $3, $4) RETURNING id"].QueryRow(
 		new.Username,
 		new.Email,
-		string(password),
+		password,
 		utils.Btou(*new.Admin)).Scan(&id); err != nil {
 		return nil, fmt.Errorf("could not insert user into database, error: %w", err)
 	}
 	new.ID = &id
+	new.Password = &password
 	return new, nil
 }
 
@@ -102,4 +104,12 @@ func (u *UserStore) Delete(id int) error {
 		return fmt.Errorf("could not delete user with id %v, error: %w", id, err)
 	}
 	return nil
+}
+
+func (u *UserStore) GetByUsername(username string) (*users.User, error) {
+	user := &users.User{}
+	if err := u.statements["SELECT * FROM users WHERE username = $1"].QueryRowx(username).StructScan(user); err != nil {
+		return nil, fmt.Errorf("user with username '%v' does not exist, error: %w", username, err)
+	}
+	return user, nil
 }
