@@ -9,19 +9,37 @@ import (
 )
 
 func NewUserStore(db *sqlx.DB) *UserStore {
-	return &UserStore{
-		DB: db,
+	store := &UserStore{
+		DB:         db,
+		statements: make(map[string]*sqlx.Stmt, 0),
 	}
+
+	// Prepared statements
+	queries := []string{
+		"SELECT * FROM users WHERE id = $1",
+		"SELECT * FROM users",
+		"INSERT INTO users (username, email, password, admin) VALUES ($1, $2, $3, $4) RETURNING id",
+		"DELETE FROM users WHERE id = $1",
+	}
+	for _, query := range queries {
+		stmt, err := store.Preparex(query)
+		if err != nil {
+			panic(fmt.Errorf("could not prepare query: %v, error: %w", query, err))
+		}
+		store.statements[query] = stmt
+	}
+
+	return store
 }
 
-// TODO: PREPARED STATEMENTS
 type UserStore struct {
 	*sqlx.DB
+	statements map[string]*sqlx.Stmt
 }
 
 func (u *UserStore) User(id int) (*users.User, error) {
 	user := &users.User{}
-	if err := u.QueryRowx("SELECT * FROM users WHERE id = $1", id).StructScan(user); err != nil {
+	if err := u.statements["SELECT * FROM users WHERE id = $1"].QueryRowx(id).StructScan(user); err != nil {
 		return nil, fmt.Errorf("user with id %v does not exist, error: %w", id, err)
 	}
 	return user, nil
@@ -29,7 +47,7 @@ func (u *UserStore) User(id int) (*users.User, error) {
 
 func (u *UserStore) Users() ([]*users.User, error) {
 	var users []*users.User
-	if err := u.Select(&users, "SELECT * FROM users"); err != nil {
+	if err := u.statements["SELECT * FROM users"].Select(&users); err != nil {
 		return nil, nil
 	}
 	return users, nil
@@ -42,7 +60,7 @@ func (u *UserStore) CreateUser(new *users.User) (*users.User, error) {
 	}
 
 	id := 0
-	if err := u.QueryRow("INSERT INTO users (username, email, password, admin) VALUES ($1, $2, $3, $4) RETURNING id",
+	if err := u.statements["INSERT INTO users (username, email, password, admin) VALUES ($1, $2, $3, $4) RETURNING id"].QueryRow(
 		new.Username,
 		new.Email,
 		string(password),
@@ -55,7 +73,7 @@ func (u *UserStore) CreateUser(new *users.User) (*users.User, error) {
 
 func (u *UserStore) UpdateUser(update *users.User) (*users.User, error) {
 	user := &users.User{}
-	if err := u.QueryRowx("SELECT * FROM users WHERE id = $1", update.ID).StructScan(user); err != nil {
+	if err := u.statements["SELECT * FROM users WHERE id = $1"].QueryRowx(update.ID).StructScan(user); err != nil {
 		return nil, fmt.Errorf("user with id %v does not exist, error: %w", update.ID, err)
 	}
 
@@ -77,7 +95,7 @@ func (u *UserStore) UpdateUser(update *users.User) (*users.User, error) {
 }
 
 func (u *UserStore) DeleteUser(id int) error {
-	if err := u.QueryRowx("SELECT * FROM users WHERE id = $1", id).StructScan(&users.User{}); err != nil {
+	if err := u.statements["SELECT * FROM users WHERE id = $1"].QueryRowx(id).StructScan(&users.User{}); err != nil {
 		return fmt.Errorf("user with id %v does not exist, error: %w", id, err)
 	}
 	if _, err := u.Exec("DELETE FROM users WHERE id = $1", id); err != nil {
