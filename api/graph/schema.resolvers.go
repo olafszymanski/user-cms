@@ -5,12 +5,32 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/olafszymanski/user-cms/auth"
 	"github.com/olafszymanski/user-cms/graph/generated"
 	"github.com/olafszymanski/user-cms/graph/model"
 	"github.com/olafszymanski/user-cms/postgres"
 	"github.com/olafszymanski/user-cms/users"
+	"github.com/olafszymanski/user-cms/utils"
 )
+
+func (r *mutationResolver) Login(ctx context.Context, input model.Login) (*model.Token, error) {
+	user, err := postgres.Database.UserStore.GetByUsername(input.Username)
+	if err != nil {
+		return nil, err
+	}
+
+	if utils.CheckPassword(input.Password, *user.Password) {
+		token, err := auth.GenerateToken(user)
+		u, _ := auth.ValidateToken(token)
+		fmt.Println(u)
+		return &model.Token{
+			Token: token,
+		}, err
+	}
+	return nil, fmt.Errorf("invalid password")
+}
 
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
 	user, err := postgres.Database.UserStore.Create(&users.User{

@@ -1,3 +1,7 @@
+type Token {
+  token: String!
+}
+
 type User {
   id: ID
   username: String
@@ -9,6 +13,11 @@ type User {
 type Query {
   user(id: ID!): User!
   users: [User!]!
+}
+
+input Login {
+  username: String!
+  password: String!
 }
 
 input NewUser {
@@ -27,6 +36,8 @@ input UpdateUser {
 }
 
 type Mutation {
+  login(input: Login!): Token!
+
   createUser(input: NewUser!): User!
   updateUser(input: UpdateUser!): User!
   deleteUser(id: ID!): Boolean!
