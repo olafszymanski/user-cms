@@ -55,8 +55,7 @@ func (u *UserStore) All() ([]*users.User, error) {
 }
 
 func (u *UserStore) Create(new *users.User) (*users.User, error) {
-	password, err := utils.HashPassword(*new.Password)
-	if err != nil {
+	if err := new.HashPassword(); err != nil {
 		return nil, fmt.Errorf("could not hash password, error: %w", err)
 	}
 
@@ -64,12 +63,11 @@ func (u *UserStore) Create(new *users.User) (*users.User, error) {
 	if err := u.statements["INSERT INTO users (username, email, password, admin) VALUES ($1, $2, $3, $4) RETURNING id"].QueryRow(
 		new.Username,
 		new.Email,
-		password,
+		new.Password,
 		utils.Btou(*new.Admin)).Scan(&id); err != nil {
 		return nil, fmt.Errorf("could not insert user into database, error: %w", err)
 	}
 	new.ID = &id
-	new.Password = &password
 	return new, nil
 }
 

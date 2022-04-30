@@ -12,7 +12,6 @@ import (
 	"github.com/olafszymanski/user-cms/graph/model"
 	"github.com/olafszymanski/user-cms/postgres"
 	"github.com/olafszymanski/user-cms/users"
-	"github.com/olafszymanski/user-cms/utils"
 )
 
 func (r *mutationResolver) Login(ctx context.Context, input model.Login) (*model.Token, error) {
@@ -21,10 +20,8 @@ func (r *mutationResolver) Login(ctx context.Context, input model.Login) (*model
 		return nil, err
 	}
 
-	if utils.CheckPassword(input.Password, *user.Password) {
+	if user.CheckPassword(input.Password) {
 		token, err := auth.GenerateToken(user)
-		u, _ := auth.ValidateToken(token)
-		fmt.Println(u)
 		return &model.Token{
 			Token: token,
 		}, err

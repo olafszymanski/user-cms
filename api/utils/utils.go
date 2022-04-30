@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/olafszymanski/user-cms/users"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func Btou(v bool) uint8 {
@@ -14,19 +13,6 @@ func Btou(v bool) uint8 {
 	} else {
 		return 0
 	}
-}
-
-func HashPassword(password string) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	return string(hash), nil
-}
-
-func CheckPassword(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
 }
 
 func GenerateUpdateQuery(before, after *users.User) (string, error) {
@@ -44,11 +30,10 @@ func GenerateUpdateQuery(before, after *users.User) (string, error) {
 	}
 	if after.Password != nil {
 		params = append(params, "password=:password")
-		hash, err := HashPassword(*after.Password)
-		if err != nil {
+		before.Password = after.Password
+		if err := before.HashPassword(); err != nil {
 			return "", fmt.Errorf("could not hash password, error: %w", err)
 		}
-		before.Password = &hash
 	}
 	if after.Admin != nil {
 		params = append(params, "admin=:admin")
