@@ -11,8 +11,8 @@ type User {
 }
 
 type Query {
-  user(id: ID!): User!
-  users: [User!]!
+  user(id: ID!): User! @isAuth
+  users: [User!]! @isAuth
 }
 
 input Login {
@@ -38,7 +38,9 @@ input UpdateUser {
 type Mutation {
   login(input: Login!): Token!
 
-  createUser(input: NewUser!): User!
-  updateUser(input: UpdateUser!): User!
-  deleteUser(id: ID!): Boolean!
+  createUser(input: NewUser!): User! @isAuth
+  updateUser(input: UpdateUser!): User! @isAuth
+  deleteUser(id: ID!): Boolean! @isAuth
 }
+
+directive @isAuth on FIELD_DEFINITION
