@@ -10,7 +10,6 @@ import (
 
 func IsAuth(ctx context.Context, obj interface{}, next graphql.Resolver) (interface{}, error) {
 	user := auth.ForContext(ctx)
-	fmt.Println(user)
 	if user != nil {
 		if *user.Admin {
 			return next(ctx)

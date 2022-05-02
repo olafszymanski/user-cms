@@ -22,5 +22,6 @@ func main() {
 	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	router.Handle("/query", handler.NewDefaultServer(generated.NewExecutableSchema(c)))
 
-	log.Fatal(http.ListenAndServe(":"+os.Getenv("API_PORT"), router))
+	log.Printf("API is ready")
+	panic(http.ListenAndServe(":"+os.Getenv("API_PORT"), router))
 }
