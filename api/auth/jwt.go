@@ -45,7 +45,7 @@ func ParseToken(tokenString string) (*string, error) {
 	}
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		username := claims["username"].(string)
-		return &username, fmt.Errorf("could not decode jwt claims, error: %w", err)
+		return &username, nil
 	}
 	return nil, fmt.Errorf("invalid jwt token, error: %w", err)
 }
