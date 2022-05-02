@@ -15,7 +15,7 @@ import (
 )
 
 func (r *mutationResolver) Login(ctx context.Context, input model.Login) (*model.Token, error) {
-	user, err := postgres.Database.UserStore.GetByUsername(input.Username)
+	user, err := postgres.Database.UserStore.GetByUsernameOrEmail(input.Username, input.Email)
 	if err != nil {
 		return nil, err
 	}

@@ -21,6 +21,7 @@ func NewUserStore(db *sqlx.DB) *UserStore {
 		"INSERT INTO users (username, email, password, admin) VALUES ($1, $2, $3, $4) RETURNING id",
 		"DELETE FROM users WHERE id = $1",
 		"SELECT * FROM users WHERE username = $1",
+		"SELECT * FROM users WHERE username = $1 OR email = $2",
 	}
 	for _, query := range queries {
 		stmt, err := store.Preparex(query)
@@ -108,6 +109,14 @@ func (u *UserStore) GetByUsername(username string) (*users.User, error) {
 	user := &users.User{}
 	if err := u.statements["SELECT * FROM users WHERE username = $1"].QueryRowx(username).StructScan(user); err != nil {
 		return nil, fmt.Errorf("user with username '%v' does not exist, error: %w", username, err)
+	}
+	return user, nil
+}
+
+func (u *UserStore) GetByUsernameOrEmail(username, email *string) (*users.User, error) {
+	user := &users.User{}
+	if err := u.statements["SELECT * FROM users WHERE username = $1 OR email = $2"].QueryRowx(username, email).StructScan(user); err != nil {
+		return nil, fmt.Errorf("user with this username or email does not exist, error: %w", err)
 	}
 	return user, nil
 }
